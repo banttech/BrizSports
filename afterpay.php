@@ -25,7 +25,6 @@ $payrefnum = $result->Transactions[0]->InvoiceReference;
 
 $amountpaid = $result->Transactions[0]->TotalAmount/100;
 
-
 $datepaid = date("YmdHi");
 
 
@@ -208,11 +207,18 @@ $amountpaid = number_format($amountpaid,2);
                         <div class="panel-body">
                             <div class="table-responsive">
 								
-							<?
-	
-	
+<?
+	$getSenderEmail = "select * from emails where type='sender'";
+	$rezSenderEmail = mysqli_query($con,$getSenderEmail);
+	$rSenderEmail = mysqli_fetch_array($rezSenderEmail);
+	$senderEmail = $rSenderEmail['email'];
 
-
+	$getReceiversEmails = "select * from emails where type='receiver'";
+	$rezReceiversEmails = mysqli_query($con,$getReceiversEmails);
+	$receiversEmails = array();
+	while($rReceiversEmails = mysqli_fetch_array($rezReceiversEmails)) {
+		$receiversEmails[] = $rReceiversEmails['email'];
+	}
 
 if ($result->Transactions[0]->TransactionStatus) {
     echo "Transaction successful";
@@ -243,11 +249,15 @@ if ($result->Transactions[0]->TransactionStatus) {
 		$body = str_replace('[datetime]',$datetime,$body);
 		
 		// $mail->SetFrom("sales@brizsports.com.au","Briz Sports");
-		$mail->SetFrom("muzammilshahzad894@gmail.com","Briz Sports");
+		$mail->SetFrom($senderEmail,"Briz Sports");
 		$mail->Subject  = "Payment receipt for order no. ". $ordernumber;
 		$mail->AddAddress($email);
+		foreach($receiversEmails as $receiverEmail) {
+			$mail->AddAddress($receiverEmail);
+		}
+
 		//$mail->AddBCC('ageorgievski@gmail.com'); //receipts@brizsports.com.au
-		$mail->AddBCC('receipts@brizsports.com.au');
+		// $mail->AddBCC('receipts@brizsports.com.au');
 		
 		$mail->MsgHTML($body);
 		$send = $mail->Send();
@@ -256,7 +266,7 @@ if ($result->Transactions[0]->TransactionStatus) {
 	}
 	
 	
-	print'<meta http-equiv="refresh" content="12; url=thankyou.php">';
+	print'<meta http-equiv="refresh" content="3; url=thankyou.php">';
 	
 } else {
     echo "Transaction declined";
@@ -284,11 +294,14 @@ if ($result->Transactions[0]->TransactionStatus) {
 		$body = str_replace('[datetime]',$datetime,$body);
 		
 		// $mail->SetFrom("sales@brizsports.com.au","Briz Sports");
-		$mail->SetFrom("muzammilshahzad894@gmail.com","Briz Sports");
+		$mail->SetFrom($senderEmail,"Briz Sports");
 		$mail->Subject  = "Payment declined for order no. ". $ordernumber;
 		$mail->AddAddress($email);
+		foreach($receiversEmails as $receiverEmail) {
+			$mail->AddAddress($receiverEmail);
+		}
 		//$mail->AddBCC('ageorgievski@gmail.com');
-		$mail->AddBCC('receipts@brizsports.com.au');
+		// $mail->AddBCC('receipts@brizsports.com.au');
 		
 		$mail->MsgHTML($body);
 		$send = $mail->Send();
@@ -299,7 +312,7 @@ if ($result->Transactions[0]->TransactionStatus) {
 	
 	
 	//print'Order deleted successfully!'; 
-	print'<meta http-equiv="refresh" content="12; url=student-login.php">';
+	print'<meta http-equiv="refresh" content="3; url=student-login.php">';
 }
 								
 								echo '<br><br>';

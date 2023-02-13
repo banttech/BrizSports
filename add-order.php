@@ -63,7 +63,7 @@ $payrefnum = uniqid();
     <link href="https://brizsports.com.au/order-management/css/plugins/dataTables.bootstrap.css" rel="stylesheet">
 
     <!-- Custom CSS -->
-    <link href="https://brizsports.com.au/order-management/css/style.css" rel="stylesheet">
+    <link href="https://bsworkcopy.banttechenergies.com/order-management/css/style.css" rel="stylesheet">
 
     <!-- Custom Fonts -->
     <link href="https://brizsports.com.au/order-management/font-awesome-4.1.0/css/font-awesome.min.css" rel="stylesheet" type="text/css">
@@ -200,17 +200,43 @@ if($isok==1) {
 	$customer=$_POST['fname'].' '.$_POST['lname'];
 
 	// find payrefnum if exist then update else insert
+	$totalQuantity=0;
+	foreach($_POST['quantity'] as $quantity){
+		$totalQuantity+=$quantity;
+	}
 	$qstudents="select * from students where payrefnum='".$_POST['payrefnum']."'";
 	$rezstudents=mysqli_query($con,$qstudents);
 	$rstudents=mysqli_fetch_array($rezstudents);
 	if(mysqli_num_rows($rezstudents)>0) {
-		$q1="update students set fname='".$firstname."',lname='".$lastname."',classgroup='".$classgroup."',email='".$_POST['email']."',nickname='".$nickname."',orderid='".$_POST['sdn']."',datep='".$datep."',paidd='".$_POST['paym']."',size='".$_POST['sizes']."',quantity='".$_POST['quantity']."' where payrefnum='".$_POST['payrefnum']."'";
+		$q1="update students set fname='".$firstname."',lname='".$lastname."',classgroup='".$classgroup."',email='".$_POST['email']."',nickname='".$nickname."',orderid='".$_POST['sdn']."',datep='".$datep."',paidd='".$_POST['paym']."',size='".$_POST['sizes'][0]."',quantity='".$totalQuantity."' where payrefnum='".$_POST['payrefnum']."'";
 		$rez1=mysqli_query($con,$q1)or die(mysqli_error($con));
+		// first delete all sizes for this student and then insert new sizes
+		$qstudents="select * from students where payrefnum='".$_POST['payrefnum']."'";
+		$rezstudents=mysqli_query($con,$qstudents);
+		$rstu=mysqli_fetch_array($rezstudents);
+		$studentId = $rstu['id'];
+		$q3="delete from order_sizes where student_id='".$studentId."'";
+		$rez3=mysqli_query($con,$q3)or die(mysqli_error($con));
+		// loop through sizes and insert into order_sizes table
+		$sizecount = count($_POST['sizes']);
+		for($i=0;$i<$sizecount;$i++) {
+			$q2="insert into order_sizes (student_id,size,quantity)values('".$studentId."','".$_POST['sizes'][$i]."','".$_POST['quantity'][$i]."')";
+			$rez2=mysqli_query($con,$q2)or die(mysqli_error($con));
+		}
 	} else {
-		$q1="insert into students (fname,lname,classgroup,email,nickname,orderid,datep,paidd,size,quantity,payrefnum)values('".$firstname."','".$lastname."','".$classgroup."','".$_POST['email']."','".$nickname."','".$_POST['sdn']."','".$datep."','".$_POST['paym']."','".$_POST['sizes']."','".$_POST['quantity']."','".$_POST['payrefnum']."')";
+		$q1="insert into students (fname,lname,classgroup,email,nickname,orderid,datep,paidd,size,quantity,payrefnum)values('".$firstname."','".$lastname."','".$classgroup."','".$_POST['email']."','".$nickname."','".$_POST['sdn']."','".$datep."','".$_POST['paym']."','".$_POST['sizes'][0]."','".$totalQuantity."','".$_POST['payrefnum']."')";
 		$rez1=mysqli_query($con,$q1)or die(mysqli_error($con));
+		// loop through sizes and insert into order_sizes table
+		$sizecount = count($_POST['sizes']);
+		$qstudents="select * from students where payrefnum='".$_POST['payrefnum']."'";
+		$rezstudents=mysqli_query($con,$qstudents);
+		$rstu=mysqli_fetch_array($rezstudents);
+		$studentId = $rstu['id'];
+		for($i=0;$i<$sizecount;$i++) {
+			$q2="insert into order_sizes (student_id,size,quantity)values('".$studentId."','".$_POST['sizes'][$i]."','".$_POST['quantity'][$i]."')";
+			$rez2=mysqli_query($con,$q2)or die(mysqli_error($con));
+		}
 	}
-	
 	
 	// Send order confirmation
 	
@@ -223,7 +249,19 @@ if($isok==1) {
 	require_once('phpmailer/class.phpmailer.php');
 	
 	if (filter_var($_POST['email'], FILTER_VALIDATE_EMAIL)) {
-		
+
+		$getSenderEmail = "select * from emails where type='sender'";
+		$rezSenderEmail = mysqli_query($con,$getSenderEmail);
+		$rSenderEmail = mysqli_fetch_array($rezSenderEmail);
+		$senderEmail = $rSenderEmail['email'];
+
+		$getReceiversEmails = "select * from emails where type='receiver'";
+		$rezReceiversEmails = mysqli_query($con,$getReceiversEmails);
+		$receiversEmails = array();
+		while($rReceiversEmails = mysqli_fetch_array($rezReceiversEmails)) {
+			$receiversEmails[] = $rReceiversEmails['email'];
+		}
+
 		$mail = new PHPMailer();
 		$mail->CharSet = 'UTF-8';
 
@@ -231,17 +269,21 @@ if($isok==1) {
 		$body = str_replace('[ordername]',$ordname,$body);
 		$body = str_replace('[customer]',$customer,$body);
 		$body = str_replace('[nickname]',stripslashes($nickname),$body);
-		$body = str_replace('[size]',$_POST['sizes'],$body);
+		$body = str_replace('[size]',$_POST['sizes'][0],$body);
 		$body = str_replace('[ordernumber]',$ordernumber,$body);
-		$body = str_replace('[quantity]',$_POST['quantity'],$body);
+		$body = str_replace('[quantity]',$_POST['quantity'][0],$body);
 		$body = str_replace('[datetime]',$datetime,$body);
 		
 		// $mail->SetFrom("sales@brizsports.com.au","Briz Sports");
-		$mail->SetFrom("muzammilshahzad894@gmail.com","Briz Sports");
+		$mail->SetFrom($senderEmail,"Briz Sports");
 		$mail->Subject  = "Order confirmation no. ". $ordernumber;
 		$mail->AddAddress($_POST['email']);
-		//$mail->AddBCC('ageorgievski@gmail.com');
-		$mail->AddBCC('receipts@brizsports.com.au');
+		foreach($receiversEmails as $receiverEmail) {
+			$mail->AddAddress($receiverEmail);
+		}
+
+		// //$mail->AddBCC('ageorgievski@gmail.com');
+		// $mail->AddBCC('receipts@brizsports.com.au');
 		
 		$mail->MsgHTML($body);
 		$send = $mail->Send();
@@ -279,13 +321,23 @@ if($isok==1) {
 ?>							
                                 <form role="form" action="<? if($methodofpayment==0){ echo 'add-order.php'; }else{echo 'paynow.php?id='.$sdn;} ?>" enctype="multipart/form-data" method="post" class="form-inline">
 									<div class="form-group">
-										<label>First name </label><br />
+										<label>
+											First name 
+											<button type="button" class="btn btn-secondary"  type="button" class="" data-toggle="tooltip" data-placement="top" title="Enter order details for the kid unless you are ordering for yourself.">
+												i
+											</button>
+										</label><br />
 										<input class="form-control" value="<?php if(isset($_POST['fname']))print $_POST['fname'];?>" name="fname" type="text" required autofocus/><br /><br />
 										<label>Last name </label><br />
 										<input class="form-control" value="<?php if(isset($_POST['lname']))print $_POST['lname'];?>" name="lname" type="text" required /><br /><br />
 										<label>Email</label><br />
 										<input class="form-control" value="<?php if(isset($_POST['email']))print $_POST['email'];?>" name="email" type="email" required /><br /><br />
-										<label>Class/Group </label><br />
+										<label>
+											Class/Group 
+											<button type="button" class="btn btn-secondary"  type="button" class="" data-toggle="tooltip" data-placement="top" title="Please enter the class group here say 6A, 6Red, 11B, etc. or Staff if you are a teacher, staff etc.">
+												i
+											</button>
+										</label><br />
 										<input class="form-control" value="<?php if(isset($_POST['classgroup']))print $_POST['classgroup'];?>" name="classgroup" type="text" required /><br /><br />
 										<? if($ifnick<>'no') { ?>
 										<label>Nick name options </label><br />
@@ -306,15 +358,46 @@ if($isok==1) {
                                             <option value="jerseys" <? if($productgroup=='jerseys'){ ?>selected<? } ?>>Jerseys, Jumpers & Jackets</option>
                                             <option value="sportswear" <? if($productgroup=='sportswear'){ ?>selected<? } ?>>Sportswear</option>
                                         </select><br /><br />
-                                        <label>Size </label><br />
+										<div id="parent_sizequantity">
+											<div id="sizequantity1" class="sizequantity">
+												<button type="button" class="btn close_button hidden" id="close_button" data-toggle="tooltip" data-placement="top" title="Remove">
+													<span aria-hidden="true">&times;</span>
+												</button>
+
+												<div class="sizequantity_group">
+													<div class="size">
+														<label>Size</label><br />
+														<select class="form-control" name="sizes[]" id="sizes" required />
+														<? if($productgroup<>''){ 
+														$qsizes="select * from sizes where product='" . $productgroup . "'";
+														$rsizes=mysqli_query($con,$qsizes);
+														while($rowsize=mysqli_fetch_array($rsizes)){
+														?>
+															<option value="<? echo $rowsize['size'] ?>"><? echo $rowsize['size'] ?></option>
+															<? } ?>
+														<? } else { ?>}
+														<option value="">--- Please choose from above ---</option>
+														<? } ?>
+														</select><br /><br />
+													</div>
+													<div class="quantity">
+														<label>Quantity</label><br />
+														<input class="form-control prod_quantity" value="<?php if(isset($_POST['quantity']))print $_POST['quantity'];?>" id="quantity" name="quantity[]" type="number" onchange="fPaymentAmount()" onkeyup="fPaymentAmount()" min="1" required /><span style="margin-left:10px;font-size:12px;">No. of pieces jersey/jacket/polo you are ordering</span><br /><br />
+													</div>
+												</div>
+											</div>
+										</div>
+										<div class="add_size_button">
+											<input type="button" class="btn btn-primary" value="Add Another Size" id="addsize" onClick="addSize()" />
+										</div>
+
+                                        <!-- <label>Size </label><br />
 										<select class="form-control" name="sizes" id="sizes" required />
 										<? if($productgroup<>''){ 
 											$qsizes="select * from sizes where product='" . $productgroup . "'";
 											$rsizes=mysqli_query($con,$qsizes);
 											while($rowsize=mysqli_fetch_array($rsizes)){
-									
-									
-									?>
+										?>
 											<option value="<? echo $rowsize['size'] ?>"><? echo $rowsize['size'] ?></option>
 											<? } ?>
 										<? } else { ?>}
@@ -323,7 +406,10 @@ if($isok==1) {
                                         </select><br /><br />
                                         
 										<label>Quantity</label><br />
-										<input class="form-control" value="<?php if(isset($_POST['quantity']))print $_POST['quantity'];?>" id="quantity" name="quantity" type="number" onchange="fPaymentAmount()" onkeyup="fPaymentAmount()" min="1" required /><span style="margin-left:10px;font-size:12px;">No. of pieces jersey/jacket/polo you are ordering</span><br /><br />
+										<input class="form-control" value="<?php if(isset($_POST['quantity']))print $_POST['quantity'];?>" id="quantity" name="quantity" type="number" onchange="fPaymentAmount()" onkeyup="fPaymentAmount()" min="1" required /><span style="margin-left:10px;font-size:12px;">No. of pieces jersey/jacket/polo you are ordering</span><br /><br /> -->
+
+
+
 										<? if ($methodofpayment==0){ ?>
                                         <label>Payment made? </label><br />
 										<select class="form-control" name="paym">
@@ -349,12 +435,11 @@ if($isok==1) {
 											<input type="submit" class="btn btn-primary pink" name="trimi" value="Submit">
 										<? } ?>
 										
-										
-										
+							
 										
 									</div>	
 								</form>
-                                <?php }?>
+                                <?php } ?>
                             </div>
                             <!-- /.table-responsive -->
 
@@ -409,15 +494,48 @@ if($isok==1) {
     
     <script  src="js/nickname.js"></script>
 	
-	
 	<script type="text/javascript">
 		function fPaymentAmount() {
-
+			if (<?php echo $methodofpayment; ?> == 0) {
+				return false;
+			}
+			var quantity = document.getElementsByClassName('prod_quantity');
 			var orderval = "<?php echo $orderval; ?>";
-			var x = document.getElementById('quantity').value * orderval;
-			var xwithdecimals = x.toFixed(2);
+			var total = 0;
+			for (var i = 0; i < quantity.length; i++) {
+				total += quantity[i].value * orderval;
+			}
+			var xwithdecimals = total.toFixed(2);
 			document.getElementById('paymentamount').innerHTML = xwithdecimals;
 
+
+			// var orderval = "<?php echo $orderval; ?>";
+			// var x = document.getElementById('quantity').value * orderval;
+			// var xwithdecimals = x.toFixed(2);
+			// document.getElementById('paymentamount').innerHTML = xwithdecimals;
+		}
+		
+		$totalSizez = 1;
+		function addSize() {
+			$totalSizez++;
+			var parent_sizequantity = document.getElementById('parent_sizequantity');
+			var sizequantity = document.getElementById('sizequantity1');
+			var clone = sizequantity.cloneNode(true);
+			clone.id = "sizequantity" + $totalSizez;
+			clone.getElementsByClassName('close_button')[0].className = "close_button";
+			clone.getElementsByClassName('close_button')[0].setAttribute("onclick", "removeSize(this)");
+			clone.getElementsByClassName('prod_quantity')[0].value = "";
+			parent_sizequantity.appendChild(clone);
+		}
+
+		function removeSize(elem) {
+			elem.parentNode.parentNode.removeChild(elem.parentNode);
+			fPaymentAmount();
+		}
+		window.onload = function() {
+			if (<?php echo $methodofpayment; ?> == 1) {
+				fPaymentAmount();
+			}
 		}
 	</script>
 

@@ -65,7 +65,15 @@ $res_duplicate=mysqli_query($con,$check_duplicate);
 		}
     </style>
     
-    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>  
+    <script>
+  $(document).ready(function(){
+    $(window).on('beforeunload',function(){
+      return '';
+    });
+  });
+  </script>
 
 	<script>
 		$(function() {
@@ -168,24 +176,52 @@ $res_duplicate=mysqli_query($con,$check_duplicate);
 								
 							<?
 	
-	if($_POST['nickoptions']==1){$nickname='(NA)';};
-	if($_POST['nickoptions']==2){$nickname='(Blank)';};
-	if($_POST['nickoptions']==3){$nickname=mysqli_real_escape_string($con, $_POST['nickname']);};
-	if($_POST['nickoptions']==''){$nickname='(Blank)';};
-								
-	$firstname=mysqli_real_escape_string($con, $_POST['fname']);
-	$lastname=mysqli_real_escape_string($con, $_POST['lname']);
-	$classgroup=mysqli_real_escape_string($con, $_POST['classgroup']);
-							
-   $datep=date("YmdHi");
-	if (mysqli_num_rows($res_duplicate)==0){
-   $q1="insert ignore into students (fname,lname,classgroup,email,nickname,orderid,datep,paidd,size,quantity,payrefnum)values('".$firstname."','".$lastname."','".$classgroup."','".$_POST['email']."','".$nickname."','".$_POST['sdn']."','".$datep."','".$_POST['paym']."','".$_POST['sizes']."','".$_POST['quantity']."','".$_POST['payrefnum']."')";
-   $rez1=mysqli_query($con,$q1)or die(mysqli_error($con));			
-	}else{
-        $q1="update students set fname='".$firstname."',lname='".$lastname."',classgroup='".$classgroup."',email='".$_POST['email']."',nickname='".$nickname."',orderid='".$_POST['sdn']."',datep='".$datep."',paidd='".$_POST['paym']."',size='".$_POST['sizes']."',quantity='".$_POST['quantity']."',payrefnum='".$_POST['payrefnum']."' where payrefnum='".$_POST['payrefnum']."'";
-        $rez1=mysqli_query($con,$q1)or die(mysqli_error($con));
-    }							
-								
+                            if($_POST['nickoptions']==1){$nickname='(NA)';};
+                            if($_POST['nickoptions']==2){$nickname='(Blank)';};
+                            if($_POST['nickoptions']==3){$nickname=mysqli_real_escape_string($con, $_POST['nickname']);};
+                            if($_POST['nickoptions']==''){$nickname='(Blank)';};
+                                                        
+                            $firstname=mysqli_real_escape_string($con, $_POST['fname']);
+                            $lastname=mysqli_real_escape_string($con, $_POST['lname']);
+                            $classgroup=mysqli_real_escape_string($con, $_POST['classgroup']);
+
+                        $datep=date("YmdHi");
+                        $totalQuantity=0;
+                        foreach($_POST['quantity'] as $quantity){
+                            $totalQuantity+=$quantity;
+                        }
+
+                            if (mysqli_num_rows($res_duplicate)==0){
+                        $q1="insert ignore into students (fname,lname,classgroup,email,nickname,orderid,datep,paidd,size,quantity,payrefnum)values('".$firstname."','".$lastname."','".$classgroup."','".$_POST['email']."','".$nickname."','".$_POST['sdn']."','".$datep."','".$_POST['paym']."','".$_POST['sizes'][0]."','".$totalQuantity."','".$_POST['payrefnum']."')";
+                        $rez1=mysqli_query($con,$q1)or die(mysqli_error($con));
+                                // loop through sizes and insert into order_sizes table
+                                $sizecount = count($_POST['sizes']);
+                                $qstudents="select * from students where payrefnum='".$_POST['payrefnum']."'";
+                                $rezstudents=mysqli_query($con,$qstudents);
+                                $rstu=mysqli_fetch_array($rezstudents);
+                                $studentId = $rstu['id'];
+                                for($i=0;$i<$sizecount;$i++) {
+                                    $q2="insert into order_sizes (student_id,size,quantity)values('".$studentId."','".$_POST['sizes'][$i]."','".$_POST['quantity'][$i]."')";
+                                    $rez2=mysqli_query($con,$q2)or die(mysqli_error($con));
+                                }			
+                            }else{
+                                $q1="update students set fname='".$firstname."',lname='".$lastname."',classgroup='".$classgroup."',email='".$_POST['email']."',nickname='".$nickname."',orderid='".$_POST['sdn']."',datep='".$datep."',paidd='".$_POST['paym']."',size='".$_POST['sizes'][0]."',quantity='".$totalQuantity."',payrefnum='".$_POST['payrefnum']."' where payrefnum='".$_POST['payrefnum']."'";
+                                $rez1=mysqli_query($con,$q1)or die(mysqli_error($con));
+                                // first delete all sizes for this student and then insert new sizes
+                                $qstudents="select * from students where payrefnum='".$_POST['payrefnum']."'";
+                                $rezstudents=mysqli_query($con,$qstudents);
+                                $rstu=mysqli_fetch_array($rezstudents);
+                                $studentId = $rstu['id'];
+                                $q3="delete from order_sizes where student_id='".$studentId."'";
+                                $rez3=mysqli_query($con,$q3)or die(mysqli_error($con));
+                                // loop through sizes and insert into order_sizes table
+                                $sizecount = count($_POST['sizes']);
+                                for($i=0;$i<$sizecount;$i++) {
+                                    $q2="insert into order_sizes (student_id,size,quantity)values('".$studentId."','".$_POST['sizes'][$i]."','".$_POST['quantity'][$i]."')";
+                                    $rez2=mysqli_query($con,$q2)or die(mysqli_error($con));
+                                }
+                            }							
+                                                        
 								?>
 								
 								
@@ -199,12 +235,12 @@ $res_duplicate=mysqli_query($con,$check_duplicate);
                                 <script src="https://secure.ewaypayments.com/scripts/eCrypt.js"
 											   class="eway-paynow-button"
 											   data-publicapikey="epk-4AFB123D-4891-4D3B-A8E7-FE2DD5FC3FAF"
-											   data-amount="<? echo $orderval*$_POST['quantity']*100 ?>"
+											   data-amount="<? echo $orderval*$totalQuantity*100 ?>"
 												data-invoiceref="<? echo $_POST['payrefnum']; ?>"
 												data-label="Pay now"
 											   data-currency="AUD"
 												data-submitform="yes"
-												data-resulturl="https://bsworkcopy.banttechenergies.com/afterpay.php?id=<? echo $sdn ?>">
+												data-resulturl="https://bsworkcopy.banttechenergies.com/orders/afterpay.php?id=<? echo $sdn ?>">
 											</script>
 								
 								<!-- Begin Eway Linking Code -->
@@ -269,6 +305,13 @@ $res_duplicate=mysqli_query($con,$check_duplicate);
 		document.getElementById("nickname").selectionEnd= end;
 	}
 	</script>
+
+<!-- 
+    <script>
+    window.onbeforeunload = function() {
+        return "Are you sure you want to leave?";
+    }
+    </script> -->
     
     <script  src="js/nickname.js"></script>
 
