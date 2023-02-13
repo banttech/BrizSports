@@ -2,8 +2,8 @@
 
 date_default_timezone_set("Australia/Brisbane");
 
-$api_key = '44DD7AdXfCPX+zBFDyjYfd+sa0ept2AaqWs5jrfGACj8fczDJdF03ZL2wrg/g+eW0Wz+yg';
-$api_password = 'sOrBiGFP';
+$api_key = 'Your Key';
+$api_password = 'Your Pass';
 
 $ch = curl_init();
 
