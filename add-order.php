@@ -1,44 +1,28 @@
-<?php
-
-date_default_timezone_set("Australia/Brisbane");
-
-include("conc.php");
-$sdn=$_GET['id'];
-if ($sdn==''){$sdn=$_POST['sdn'];};
-
-$qube="select * from orderrss where sdn=".$sdn;
-$rezbe=mysqli_query($con,$qube);
-$rbe=mysqli_fetch_array($rezbe);
-$deadline = $rbe['deadline'];
-$customer = $rbe['belto'];
-$ordname = $rbe['ordname'];
-$methodofpayment = $rbe['methodofpayment'];
-$orderval = $rbe['orderval'];
-$productgroup = $rbe['productgroup'];
-$ifnick = $rbe['nickname'];
-
-$now = date("Y-m-d");
-
-if($deadline<>''){
-
-if ($now > $deadline){
-	header("Location: order-login.php?expired");
-	die();
-}else{
-	$deadline = date("d.m.Y", strtotime($deadline));
-}
-	
-}else{
-	$deadline = '(NA)';
-}
-
-$qusers="select * from customers where id=".$customer;
-$rezusers=mysqli_query($con,$qusers);
-$ru=mysqli_fetch_array($rezusers);
-$school = $ru['custname'];
-
-$payrefnum = uniqid();
-
+<?php session_start();
+      include("../conc.php");
+	  
+	  // new sdn ----------
+	  
+	  $qsdn="select id, sdn from orderrss ORDER BY id DESC LIMIT 1";
+	  $rsdn=mysqli_query($con,$qsdn);
+	  $r2sdn=mysqli_fetch_array($rsdn);
+	  $newsdn = $r2sdn['sdn'] + 1;
+	  
+	  // ------------------
+	  
+	  
+	if((!isset($_SESSION['admid']))||(!isset($_SESSION['unam']))||(!isset($_SESSION['pass'])))
+	{print'<h3>Incorrect login information</h3>';
+                                   print'<meta http-equiv="refresh" content="2; url=index.php">';
+    }
+	else
+	{
+      $q1="select * from pass where user='".$_SESSION['unam']."' and pass='".$_SESSION['pass']."' and id=".$_SESSION['admid'];
+      $rez1=mysqli_query($con,$q1);
+      if(mysqli_num_rows($rez1)==0){print'<h3>Incorrect login information</h3>';
+                                   print'<meta http-equiv="refresh" content="2; url=index.php">';
+                                  }
+							else{include("functions.php");
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -54,73 +38,19 @@ $payrefnum = uniqid();
     <title>Brizsports payment settings management</title>
 
     <!-- Bootstrap Core CSS -->
-    <link href="https://brizsports.com.au/order-management/css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/bootstrap.min.css" rel="stylesheet">
 
     <!-- MetisMenu CSS -->
-    <link href="https://brizsports.com.au/order-management/css/plugins/metisMenu/metisMenu.min.css" rel="stylesheet">
+    <link href="css/plugins/metisMenu/metisMenu.min.css" rel="stylesheet">
 
     <!-- DataTables CSS -->
-    <link href="https://brizsports.com.au/order-management/css/plugins/dataTables.bootstrap.css" rel="stylesheet">
+    <link href="css/plugins/dataTables.bootstrap.css" rel="stylesheet">
 
     <!-- Custom CSS -->
-    <link href="https://bsworkcopy.banttechenergies.com/order-management/css/style.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
 
     <!-- Custom Fonts -->
-    <link href="https://brizsports.com.au/order-management/font-awesome-4.1.0/css/font-awesome.min.css" rel="stylesheet" type="text/css">
-    
-    <style type="text/css">
-		.insert-symbol {
-			margin-top: 10px;
-		}
-		.symbols {
-			margin-left: 10px;
-			font-size: 18px;
-			cursor: pointer;
-		}
-    </style>
-    
-    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
-
-	<script>
-		$(function() {
-		
-			
-			
-			$("#pgroup").change(function() {
-			
-				var $dropdown = $(this);
-			
-				$.getJSON("jsondata/data.json", function(data) {
-				
-					var key = $dropdown.val();
-					var vals = [];
-										
-					switch(key) {
-						
-						case 'polos':
-							vals = data.polos.split(",");
-							break;
-						case 'jerseys':
-							vals = data.jerseys.split(",");
-							break;
-						case 'sportswear':
-							vals = data.sportswear.split(",");
-							break;
-						case 'base':
-							vals = ['Please choose from above'];
-					}
-					
-					var $jsontwo = $("#sizes");
-					$jsontwo.empty();
-					$.each(vals, function(index, value) {
-						$jsontwo.append("<option value=" + value + ">" + value + "</option>");
-					});
-			
-				});
-			});
-
-		});
-	</script>
+    <link href="font-awesome-4.1.0/css/font-awesome.min.css" rel="stylesheet" type="text/css">
 
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -128,6 +58,11 @@ $payrefnum = uniqid();
         <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
         <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
     <![endif]-->
+	
+	<style>
+	</style>
+	
+	
 
 </head>
 
@@ -144,27 +79,26 @@ $payrefnum = uniqid();
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a class="navbar-brand" href="student-login.php"><img src="https://brizsports.com.au/order-management/images/logo.png" alt="Brizsports payment settings management" title="Brizsports payment settings management" /><img src="https://brizsports.com.au/order-management/images/briz-leavers-logo.png" alt="Brizsports orders management" title="Brizsports orders management" style="margin-left:25px;"></a>
+                <a class="navbar-brand" href="dashboard.php"><img src="images/logo.png" alt="Brizsports payment settings management" title="Brizsports payment settings management" /></a>
             </div>
             <!-- /.navbar-header -->
 
             <ul class="nav navbar-top-links navbar-right">
 
                 <!-- /.dropdown -->
-
+<?php include("pop-menu.php");?>
                 <!-- /.dropdown -->
             </ul>
             <!-- /.navbar-top-links -->
 
-
+<?php include("side-menu.php");?>
             <!-- /.navbar-static-side -->
         </nav>
 
-        <div id="page-wrapper" style="margin:0;">
+        <div id="page-wrapper">
             <div class="row">
                 <div class="col-lg-12">
-                    <h1 class="page-header">Add Order for <? print $school ?></h1>
-                    <p class="text-danger">Please fill out all information carefully and correctly. To make any changes please contact your coordinator.</p>
+                    <h1 class="page-header">Add Order</h1>
                 </div>
                 <!-- /.col-lg-12 -->
             </div>
@@ -173,273 +107,96 @@ $payrefnum = uniqid();
                 <div class="col-lg-12">
                     <div class="panel panel-default">
                         <div class="panel-heading">
-                            <strong>Order name: <? print $ordname ?></strong><br>Add new order till <? print $deadline ?>
+                            Add new order
                         </div>
                         <!-- /.panel-heading -->
                         <div class="panel-body">
                             <div class="table-responsive">
 <?
-
 $isok=0;
-$err="";
-if(isset($_POST['trimi'])) { $isok=1; }
-if(isset($_POST['epaybtt'])) { $isok=2; }
-
-if($isok==1) {
-	if($_POST['nickoptions']==1){$nickname='(NA)';};
-	if($_POST['nickoptions']==2){$nickname='(Blank)';};
-	if($_POST['nickoptions']==3){$nickname=mysqli_real_escape_string($con, $_POST['nickname']);};
-	if($_POST['nickoptions']==''){$nickname='(Blank)';};
-	
-	$firstname=mysqli_real_escape_string($con, $_POST['fname']);
-	$lastname=mysqli_real_escape_string($con, $_POST['lname']);
-	$classgroup=mysqli_real_escape_string($con, $_POST['classgroup']);
-	
-   $datep=date("YmdHi");
-	$datetime=substr($datep,6,2).'-'.substr($datep,4,2).'-'.substr($datep,0,4).' '.substr($datep,8,2).':'.substr($datep,10,2);
-	$customer=$_POST['fname'].' '.$_POST['lname'];
-
-	// find payrefnum if exist then update else insert
-	$totalQuantity=0;
-	foreach($_POST['quantity'] as $quantity){
-		$totalQuantity+=$quantity;
-	}
-	$qstudents="select * from students where payrefnum='".$_POST['payrefnum']."'";
-	$rezstudents=mysqli_query($con,$qstudents);
-	$rstudents=mysqli_fetch_array($rezstudents);
-	if(mysqli_num_rows($rezstudents)>0) {
-		$q1="update students set fname='".$firstname."',lname='".$lastname."',classgroup='".$classgroup."',email='".$_POST['email']."',nickname='".$nickname."',orderid='".$_POST['sdn']."',datep='".$datep."',paidd='".$_POST['paym']."',size='".$_POST['sizes'][0]."',quantity='".$totalQuantity."' where payrefnum='".$_POST['payrefnum']."'";
-		$rez1=mysqli_query($con,$q1)or die(mysqli_error($con));
-		// first delete all sizes for this student and then insert new sizes
-		$qstudents="select * from students where payrefnum='".$_POST['payrefnum']."'";
-		$rezstudents=mysqli_query($con,$qstudents);
-		$rstu=mysqli_fetch_array($rezstudents);
-		$studentId = $rstu['id'];
-		$q3="delete from order_sizes where student_id='".$studentId."'";
-		$rez3=mysqli_query($con,$q3)or die(mysqli_error($con));
-		// loop through sizes and insert into order_sizes table
-		$sizecount = count($_POST['sizes']);
-		for($i=0;$i<$sizecount;$i++) {
-			$q2="insert into order_sizes (student_id,size,quantity)values('".$studentId."','".$_POST['sizes'][$i]."','".$_POST['quantity'][$i]."')";
-			$rez2=mysqli_query($con,$q2)or die(mysqli_error($con));
-		}
-	} else {
-		$q1="insert into students (fname,lname,classgroup,email,nickname,orderid,datep,paidd,size,quantity,payrefnum)values('".$firstname."','".$lastname."','".$classgroup."','".$_POST['email']."','".$nickname."','".$_POST['sdn']."','".$datep."','".$_POST['paym']."','".$_POST['sizes'][0]."','".$totalQuantity."','".$_POST['payrefnum']."')";
-		$rez1=mysqli_query($con,$q1)or die(mysqli_error($con));
-		// loop through sizes and insert into order_sizes table
-		$sizecount = count($_POST['sizes']);
-		$qstudents="select * from students where payrefnum='".$_POST['payrefnum']."'";
-		$rezstudents=mysqli_query($con,$qstudents);
-		$rstu=mysqli_fetch_array($rezstudents);
-		$studentId = $rstu['id'];
-		for($i=0;$i<$sizecount;$i++) {
-			$q2="insert into order_sizes (student_id,size,quantity)values('".$studentId."','".$_POST['sizes'][$i]."','".$_POST['quantity'][$i]."')";
-			$rez2=mysqli_query($con,$q2)or die(mysqli_error($con));
-		}
-	}
-	
-	// Send order confirmation
-	
-	$qstudents="select * from students where payrefnum='".$_POST['payrefnum']."'";
-	$rezstudents=mysqli_query($con,$qstudents);
-	$rstu=mysqli_fetch_array($rezstudents);
-	$orderid = $rstu['id'];
-	$ordernumber=$rbe['id'].'/'.$orderid;
-	
-	require_once('phpmailer/class.phpmailer.php');
-	
-	if (filter_var($_POST['email'], FILTER_VALIDATE_EMAIL)) {
-
-		$getSenderEmail = "select * from emails where type='sender'";
-		$rezSenderEmail = mysqli_query($con,$getSenderEmail);
-		$rSenderEmail = mysqli_fetch_array($rezSenderEmail);
-		$senderEmail = $rSenderEmail['email'];
-
-		$getReceiversEmails = "select * from emails where type='receiver'";
-		$rezReceiversEmails = mysqli_query($con,$getReceiversEmails);
-		$receiversEmails = array();
-		while($rReceiversEmails = mysqli_fetch_array($rezReceiversEmails)) {
-			$receiversEmails[] = $rReceiversEmails['email'];
-		}
-
-		$mail = new PHPMailer();
-		$mail->CharSet = 'UTF-8';
-
-		$body = file_get_contents('emails/order-made.htm');
-		$body = str_replace('[ordername]',$ordname,$body);
-		$body = str_replace('[customer]',$customer,$body);
-		$body = str_replace('[nickname]',stripslashes($nickname),$body);
-		$body = str_replace('[size]',$_POST['sizes'][0],$body);
-		$body = str_replace('[ordernumber]',$ordernumber,$body);
-		$body = str_replace('[quantity]',$_POST['quantity'][0],$body);
-		$body = str_replace('[datetime]',$datetime,$body);
-		
-		// $mail->SetFrom("sales@brizsports.com.au","Briz Sports");
-		$mail->SetFrom($senderEmail,"Briz Sports");
-		$mail->Subject  = "Order confirmation no. ". $ordernumber;
-		$mail->AddAddress($_POST['email']);
-		foreach($receiversEmails as $receiverEmail) {
-			$mail->AddAddress($receiverEmail);
-		}
-
-		// //$mail->AddBCC('ageorgievski@gmail.com');
-		// $mail->AddBCC('receipts@brizsports.com.au');
-		
-		$mail->MsgHTML($body);
-		$send = $mail->Send();
-		$mail->ClearAllRecipients();
-
-		// mail($_POST['email'], "Order confirmation no. ". $ordernumber, $body, "From: muzammilshahzad894@gmail.com");
-
-	}
-	
-	
-   print'Information added successfully!'; 
-   print'<meta http-equiv="refresh" content="2; url=thankyou.php">';   
-}else if($isok==2) {
-	//echo $orderval.'<br>'.$_POST['quantity'];
-	
-	if($_POST['nickoptions']==1){$nickname='(NA)';};
-	if($_POST['nickoptions']==2){$nickname='(Blank)';};
-	if($_POST['nickoptions']==3){$nickname=mysqli_real_escape_string($con, $_POST['nickname']);};
-	if($_POST['nickoptions']==''){$nickname='(Blank)';};
-	
-	$firstname=mysqli_real_escape_string($con, $_POST['fname']);
-	$lastname=mysqli_real_escape_string($con, $_POST['lname']);
-	$classgroup=mysqli_real_escape_string($con, $_POST['classgroup']);
-	
-   $datep=date("YmdHi");
-   $q1="insert into students (fname,lname,classgroup,email,nickname,orderid,datep,paidd,size,quantity,payrefnum)values('".$firstname."','".$lastname."','".$classgroup."','".$_POST['email']."','".$nickname."','".$_POST['sdn']."','".$datep."','".$_POST['paym']."','".$_POST['sizes']."','".$_POST['quantity']."','".$payrefnum."')";
+  $err="";
+  if(isset($_POST['trimi']))
+  {$isok=1;
+   if((!is_numeric($_POST['sdn']))||(strlen($_POST['sdn'])!=6)){$isok=0;$err.="Six digit number incorrectly formatted!<br/>";}
+   else{$qxv="select * from orderrss where sdn='".$_POST['sdn']."'";
+        $rezxv=mysqli_query($con,$qxv);
+        if(mysqli_num_rows($rezxv)>0){$isok=0;$err.="Six digit number already allocated to another order!<br/>";}
+	   }
+   //if((!is_numeric($_POST['orderval']))||($_POST['orderval']<=0)){$isok=0;$err.="Order value must be a positive number!<br/>";}	
+   if(trim($_POST['orddate'])==""){$isok=0;$err.="Order date can not be empty!<br/>";}
+   if(trim($_POST['dline'])==""){$isok=0;$err.="Deadline can not be empty!<br/>";}
+  }
+  if($isok==1)
+  {
+   $qmax="select max(id) as lemax from orderrss";
+   $rezmax=mysqli_query($con,$qmax);
+   $rmax=mysqli_fetch_array($rezmax);
+   $maxuid=$rmax['lemax'];$maxuid++;
+   $orderval=textbun($_POST['orderval']);
+	  
+   $q1="insert into orderrss (id,orderval,sdn,orddate,deadline,ordname,belto,methodofpayment,productgroup,nickname)values('".$maxuid."','".$orderval."','".$_POST['sdn']."','".$_POST['orddate']."','".$_POST['dline']."','".$_POST['deadline']."','".$_POST['belto']."','".$_POST['methodofpayment']."','".$_POST['pgroup']."','".$_POST['nickname']."')";
    $rez1=mysqli_query($con,$q1)or die(mysqli_error($con));
-	
-	header('Location: https://orders.brizsports.com.au/paynow.php');
-	die();
-	
-	
-}else{
+   print'Information added successfully!'; 
+   print'<meta http-equiv="refresh" content="2; url=add-order.php">';   
+  }
+  else{
   if(trim($err)!="") print'<div style="color:red">'.$err.'</div>';
 ?>							
-                                <form role="form" action="<? if($methodofpayment==0){ echo 'add-order.php'; }else{echo 'paynow.php?id='.$sdn;} ?>" enctype="multipart/form-data" method="post" class="form-inline">
+                                <form role="form" action="add-order.php" enctype="multipart/form-data" method="post" class="form-inline">
 									<div class="form-group">
-										<label>
-											First name 
-											<button type="button" class="btn btn-secondary"  type="button" class="" data-toggle="tooltip" data-placement="top" title="Enter order details for the kid unless you are ordering for yourself.">
-												i
-											</button>
-										</label><br />
-										<input class="form-control" value="<?php if(isset($_POST['fname']))print $_POST['fname'];?>" name="fname" type="text" required autofocus/><br /><br />
-										<label>Last name </label><br />
-										<input class="form-control" value="<?php if(isset($_POST['lname']))print $_POST['lname'];?>" name="lname" type="text" required /><br /><br />
-										<label>Email</label><br />
-										<input class="form-control" value="<?php if(isset($_POST['email']))print $_POST['email'];?>" name="email" type="email" required /><br /><br />
-										<label>
-											Class/Group 
-											<button type="button" class="btn btn-secondary"  type="button" class="" data-toggle="tooltip" data-placement="top" title="Please enter the class group here say 6A, 6Red, 11B, etc. or Staff if you are a teacher, staff etc.">
-												i
-											</button>
-										</label><br />
-										<input class="form-control" value="<?php if(isset($_POST['classgroup']))print $_POST['classgroup'];?>" name="classgroup" type="text" required /><br /><br />
-										<? if($ifnick<>'no') { ?>
-										<label>Nick name options </label><br />
-                                        <select class="form-control" name="nickoptions" id="nickoptions" required>
-										  <option value="">--- please select ---</option>
-                                          <option value="1">Not applicable</option>
-										  <option value="2">Keep name space blank</option>
-                                          <option value="3">Write a nick name to print</option>
-                                        </select>
-                                        <div id="shownick" style="display:none;"><br><label>Nick name to print </label><br />
-										<input class="form-control" value="<?php if(isset($_POST['nickname']))print $_POST['nickname'];?>" name="nickname" id="nickname" type="text" /></div>
-                                        <br /><br />
-										<? } ?>
-                                        <label>Product group </label><br />
+										<label>Method of payment </label><br />
+										<select class="form-control" name="methodofpayment" id="methodofpayment">
+											<option value="0">Group invoice</option>
+											<option value="1">Individual e-payment</option>
+										</select><br /><br />
+										<label id="valuelab">Order value </label><br />
+										<div class="input-group" id="valueinp">
+										  <span class="input-group-addon">$</span>
+										  <input class="form-control" value="<?php if(isset($_POST['orderval']))print $_POST['orderval'];?>" name="orderval" id="orderval" type="number" size="30" step=".01" placeholder="0.00" disabled />
+										</div>
+										<br /><br />
+										<label>Six digit number </label><br />
+										<input class="form-control" value="<?php if(isset($_POST['sdn']))print $_POST['sdn'];else print $newsdn;?>" name="sdn" type="text" size="30"/><br /><br />
+                                        <label>Order name</label><br />
+										<input class="form-control" value="<?php if(isset($_POST['deadline']))print $_POST['deadline'];?>" name="deadline" type="text" size="30"/><br /><br />
+										<label>Nickname option</label><br />
+										<select class="form-control" name="nickname" id="nickname" required <? if($nickname<>''){ ?>disabled<? } ?>/>
+										  <option selected value="">--- please select ---</option>
+                                          <option value="yes" <? if($_POST['nickname']=='yes'){ ?>selected<? } ?> >Show</option>
+                                            <option value="no" <? if($_POST['nickname']=='no'){ ?>selected<? } ?>>Don't show</option>
+                                        </select><br /><br />
+										<label>Product group </label><br />
 										<select class="form-control" name="pgroup" id="pgroup" required <? if($productgroup<>''){ ?>disabled<? } ?>/>
 										  <option selected value="">--- please select ---</option>
-                                          <option value="polos" <? if($productgroup=='polos'){ ?>selected<? } ?> >Polos & Tees</option>
-                                            <option value="jerseys" <? if($productgroup=='jerseys'){ ?>selected<? } ?>>Jerseys, Jumpers & Jackets</option>
-                                            <option value="sportswear" <? if($productgroup=='sportswear'){ ?>selected<? } ?>>Sportswear</option>
+                                          <option value="polos" <? if($_POST['pgroup']=='polos'){ ?>selected<? } ?> >Polos & Tees</option>
+                                            <option value="jerseys" <? if($_POST['pgroup']=='jerseys'){ ?>selected<? } ?>>Jerseys, Jumpers & Jackets</option>
+                                            <option value="sportswear" <? if($_POST['pgroup']=='sportswear'){ ?>selected<? } ?>>Sportswear</option>
                                         </select><br /><br />
-										<div id="parent_sizequantity">
-											<div id="sizequantity1" class="sizequantity">
-												<button type="button" class="btn close_button hidden" id="close_button" data-toggle="tooltip" data-placement="top" title="Remove">
-													<span aria-hidden="true">&times;</span>
-												</button>
-
-												<div class="sizequantity_group">
-													<div class="size">
-														<label>Size</label><br />
-														<select class="form-control" name="sizes[]" id="sizes" required />
-														<? if($productgroup<>''){ 
-														$qsizes="select * from sizes where product='" . $productgroup . "'";
-														$rsizes=mysqli_query($con,$qsizes);
-														while($rowsize=mysqli_fetch_array($rsizes)){
-														?>
-															<option value="<? echo $rowsize['size'] ?>"><? echo $rowsize['size'] ?></option>
-															<? } ?>
-														<? } else { ?>}
-														<option value="">--- Please choose from above ---</option>
-														<? } ?>
-														</select><br /><br />
-													</div>
-													<div class="quantity">
-														<label>Quantity</label><br />
-														<input class="form-control prod_quantity" value="<?php if(isset($_POST['quantity']))print $_POST['quantity'];?>" id="quantity" name="quantity[]" type="number" onchange="fPaymentAmount()" onkeyup="fPaymentAmount()" min="1" required /><span style="margin-left:10px;font-size:12px;">No. of pieces jersey/jacket/polo you are ordering</span><br /><br />
-													</div>
-												</div>
-											</div>
-										</div>
-										<div class="add_size_button">
-											<input type="button" class="btn btn-primary" value="Add Another Size" id="addsize" onClick="addSize()" />
-										</div>
-
-                                        <!-- <label>Size </label><br />
-										<select class="form-control" name="sizes" id="sizes" required />
-										<? if($productgroup<>''){ 
-											$qsizes="select * from sizes where product='" . $productgroup . "'";
-											$rsizes=mysqli_query($con,$qsizes);
-											while($rowsize=mysqli_fetch_array($rsizes)){
-										?>
-											<option value="<? echo $rowsize['size'] ?>"><? echo $rowsize['size'] ?></option>
-											<? } ?>
-										<? } else { ?>}
-										  <option value="">--- Please choose from above ---</option>
-										<? } ?>
-                                        </select><br /><br />
+										<label>Order date </label><br />
+										<input class="form-control" value="<?php if(isset($_POST['orddate'])) { print $_POST['orddate'];}else { print date("Y-m-d");} ?>" name="orddate" type="date" style="line-height: 18px" size="30"/><br /><br />
+										<label>Deadline </label><br />
+										<input class="form-control" value="<?php if(isset($_POST['dline'])) { print $_POST['dline'];}else { print date("Y-m-d");} ?>" name="dline" type="date" style="line-height: 18px" size="30"/><br /><br />
+										
                                         
-										<label>Quantity</label><br />
-										<input class="form-control" value="<?php if(isset($_POST['quantity']))print $_POST['quantity'];?>" id="quantity" name="quantity" type="number" onchange="fPaymentAmount()" onkeyup="fPaymentAmount()" min="1" required /><span style="margin-left:10px;font-size:12px;">No. of pieces jersey/jacket/polo you are ordering</span><br /><br /> -->
+										<label>For customer </label><br />
+										<select class="form-control" name="belto">
+										<?php $qcu="select * from customers order by dateacc desc";
+										      $rezcu=mysqli_query($con,$qcu);
+											  while($rcu=mysqli_fetch_array($rezcu))
+											  {print'<option value="'.$rcu['id'].'"';
+											   if(isset($_POST['belto']))
+											     if($_POST['belto']==$rcu['id'])
+												    print' selected="true"';
+											   print'>'.$rcu['custname'];
+											   print'</option>';
+											  }
+										?>
+										</select><br /><br />
 
-
-
-										<? if ($methodofpayment==0){ ?>
-                                        <label>Payment made? </label><br />
-										<select class="form-control" name="paym">
-										  <option value="1">Yes</option>
-										  <option value="0" selected>No</option>
-                                        </select><br /><br />
-										<? } ?>
-										<? if ($methodofpayment==1){ ?>
-										<p style="font-size: 18px;font-weight: bold;margin-top: 20px;margin-bottom: 30px;">Payment amount: $<span id="paymentamount">0.00</span></p>
-										<? } ?>
-                                    	<input type="hidden" name="sdn" value="<? print $sdn ?>" />
-
-										
-										<? if ($methodofpayment==1){ ?>
-										
-											<input type="hidden" name="methodofpayment" id="methodofpayment" value="epayment" />
-											<input type="hidden" name="payrefnum" id="payrefnum" value="<? echo $payrefnum ?>" />
-										
-	  										<input type="submit" class="btn btn-primary pink" name="epaybtt" value="Proceed to Payment">
- 										<? } else { ?>
-											<input type="hidden" name="methodofpayment" value="invoice" />
-										<input type="hidden" name="payrefnum" id="payrefnum" value="<? echo $payrefnum ?>" />
-											<input type="submit" class="btn btn-primary pink" name="trimi" value="Submit">
-										<? } ?>
-										
-							
-										
+										<input type="submit" class="btn btn-primary pink" name="trimi" value="Save">
 									</div>	
 								</form>
-                                <?php } ?>
+<?php }?>								
                             </div>
                             <!-- /.table-responsive -->
 
@@ -482,63 +239,21 @@ if($isok==1) {
         $('#dataTables-example').dataTable();
     });
     </script>
-    
-    <script>
-	function addText(event) {
-		var targ = event.target || event.srcElement;
-		document.getElementById("nickname").value += targ.textContent || targ.innerText;
-		document.getElementById("nickname").focus();
-		document.getElementById("nickname").selectionEnd= end;
-	}
-	</script>
-    
-    <script  src="js/nickname.js"></script>
 	
 	<script type="text/javascript">
-		function fPaymentAmount() {
-			if (<?php echo $methodofpayment; ?> == 0) {
-				return false;
-			}
-			var quantity = document.getElementsByClassName('prod_quantity');
-			var orderval = "<?php echo $orderval; ?>";
-			var total = 0;
-			for (var i = 0; i < quantity.length; i++) {
-				total += quantity[i].value * orderval;
-			}
-			var xwithdecimals = total.toFixed(2);
-			document.getElementById('paymentamount').innerHTML = xwithdecimals;
-
-
-			// var orderval = "<?php echo $orderval; ?>";
-			// var x = document.getElementById('quantity').value * orderval;
-			// var xwithdecimals = x.toFixed(2);
-			// document.getElementById('paymentamount').innerHTML = xwithdecimals;
-		}
 		
-		$totalSizez = 1;
-		function addSize() {
-			$totalSizez++;
-			var parent_sizequantity = document.getElementById('parent_sizequantity');
-			var sizequantity = document.getElementById('sizequantity1');
-			var clone = sizequantity.cloneNode(true);
-			clone.id = "sizequantity" + $totalSizez;
-			clone.getElementsByClassName('close_button')[0].className = "close_button";
-			clone.getElementsByClassName('close_button')[0].setAttribute("onclick", "removeSize(this)");
-			clone.getElementsByClassName('prod_quantity')[0].value = "";
-			parent_sizequantity.appendChild(clone);
-		}
-
-		function removeSize(elem) {
-			elem.parentNode.parentNode.removeChild(elem.parentNode);
-			fPaymentAmount();
-		}
-		window.onload = function() {
-			if (<?php echo $methodofpayment; ?> == 1) {
-				fPaymentAmount();
+		document.getElementById('methodofpayment').addEventListener('change', function() {
+			if (this.value == 1) {
+				document.getElementById('orderval').disabled = false;
+			} else {
+				document.getElementById('orderval').disabled = true;
 			}
-		}
+		});
+		
+        
 	</script>
 
 </body>
 
 </html>
+<?php }mysqli_close($con);}?>

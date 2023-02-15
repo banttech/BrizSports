@@ -33,12 +33,12 @@
     <!-- Custom Fonts -->
     <link href="font-awesome-4.1.0/css/font-awesome.min.css" rel="stylesheet" type="text/css">
 
-    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
-    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
-    <!--[if lt IE 9]>
-        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
-        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
-    <![endif]-->
+    <!-- jQuery CDN -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- jQuery UI CDN -->
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/ui/1.13.1/jquery-ui.min.js"></script>
 
 </head>
 
@@ -96,9 +96,10 @@
 					  </div>
                         <div class="panel-body">
                             <div class="table-responsive">
-                                <table class="table table-striped table-bordered table-hover" id="dataTables-example" autosize="1" width="100%">
+                                <table class="table table-striped table-bordered table-hover" id="sortable-table" autosize="1" width="100%">
                                     <thead>
                                         <tr>
+                                            <th></th>
                                             <th style="text-align:center;"><small>Product Group Name</small></th>
                                             <th style="text-align:center;"><small>Size</small></th>
 											<div class="not-to-print"><th class="not-to-print"><small>Edit</small></th></div>
@@ -108,14 +109,15 @@
                                     <tbody>
                                         <?php
                                         $productgroup = isset($_GET['group']) ? $_GET['group'] : 'polos';
-                                        $qsizes="select * from sizes where product='" . $productgroup . "'";
+                                        $qsizes="select * from sizes where product='" . $productgroup . "' order by position";
                                         $rsizes=mysqli_query($con,$qsizes);
                                         $count = 0;
                                         while($row=mysqli_fetch_array($rsizes)){?>
                                         <?php $productHeading = $row['product'] == 'polos' ? 'Polos & Tees' : ($row['product'] == 'jerseys' ? 'Jerseys, Jumpers & Jackets' : 'Sportswear'); ?>
-                                        <tr class="odd gradeX">
-                                            <td style="text-align:center;"><?php echo $productHeading?></td>
-                                            <td style="text-align:center;"><?php echo $row['size'];?></td>
+                                        <tr class="odd gradeX" data-id="<?php echo $row['id'];?>">
+                                            <td style="text-align:center; cursor: pointer;"><i class="fa fa-arrows"></i></td>
+                                            <td style="text-align:center; cursor: pointer;"><?php echo $productHeading?></td>
+                                            <td style="text-align:center; cursor: pointer;"><?php echo $row['size'];?></td>
                                             <div class="not-to-print"><td class="not-to-print"><a href="edit-size.php?group=<?php echo isset($_GET['group']) ? $_GET['group'] : 'polos';?>&id=<?php echo $row['id'];?>"><i class="fa fa-edit"></i></a></td></div>
                                             <div class="not-to-print"><td class="not-to-print"><a onClick="deleteSize(<?php echo $row['id'];?>)" class="link"><i class="fa fa-trash-o"></i></a></td></div>
                                         </tr>
@@ -132,9 +134,6 @@
     </div>
     <!-- /#wrapper -->
 
-    <!-- jQuery Version 1.11.0 -->
-    <script src="js/jquery-1.11.0.js"></script>
-
     <!-- Bootstrap Core JavaScript -->
     <script src="js/bootstrap.min.js"></script>
 
@@ -148,16 +147,25 @@
     <!-- Custom Theme JavaScript -->
     <script src="js/sb-admin-2.js"></script>
 
-    <!-- Page-Level Demo Scripts - Tables - Use for reference -->
     <script>
-    $(document).ready(function() {
-        $('#dataTables-example').dataTable({
-            columnDefs: [
-                { orderable: false, targets: [0, 2, 3] }
-            ]
+        $(document).ready(function() {
+            $('#sortable-table tbody').sortable({
+                update: function(event, ui) {
+                var order = $(this).sortable('toArray', {attribute: 'data-id'});
+                console.log(order);
+                $.ajax({
+                    url: 'update_size_order.php',
+                    method: 'POST',
+                    data: {order: order},
+                    success: function(response) {
+                    console.log(response);
+                    }
+                });
+                }
+            });
         });
-    });
     </script>
+
 
     <script>
         function deleteSize(id){
